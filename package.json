@@ -1,8 +1,9 @@
 {
-  "name": "${PROJECT_NAME}",
+  "type": "module",
+  "name": "курсач",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "mapManager.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
