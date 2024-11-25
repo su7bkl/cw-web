@@ -79,6 +79,54 @@
                  "width":0,
                  "x":21,
                  "y":175
+                }, 
+                {
+                 "height":0,
+                 "id":139,
+                 "name":"hound_2",
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"init_state",
+                         "type":"string",
+                         "value":"sleep"
+                        }],
+                 "rotation":0,
+                 "type":"Hound",
+                 "visible":true,
+                 "width":0,
+                 "x":103.916286779942,
+                 "y":156.817239950269
+                }, 
+                {
+                 "height":0,
+                 "id":142,
+                 "name":"hound_1",
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"init_state",
+                         "type":"string",
+                         "value":"wander"
+                        }],
+                 "rotation":0,
+                 "type":"Hound",
+                 "visible":true,
+                 "width":0,
+                 "x":204.890178201409,
+                 "y":152.507252382926
+                }, 
+                {
+                 "height":0,
+                 "id":143,
+                 "name":"exit_1",
+                 "point":true,
+                 "rotation":0,
+                 "type":"Exit",
+                 "visible":true,
+                 "width":0,
+                 "x":328,
+                 "y":101
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -87,7 +135,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":139,
+ "nextobjectid":144,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.0",

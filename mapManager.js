@@ -1,5 +1,4 @@
 import {gameManager} from './gameManager.js';
-import {physicsManager} from './physicsManager.js'
 import {applyTransparentColor} from "./converter.js"
 
 export let mapManager = {
@@ -13,7 +12,7 @@ export let mapManager = {
     tilesets: [],
     jsonLoaded: false,
     imgLoaded: false,
-    view: {x: 0, y: 0, w: 200, h: 100},
+    view: {x: 0, y: 0, w: 120, h: 90},
     imgLoadCount: 0,
 
 
@@ -168,6 +167,10 @@ export let mapManager = {
                             gameManager.entities.push(obj);
                             if (obj.name === "player")
                                 gameManager.initPlayer(obj);
+                            if (e.type === "Hound"){
+                                console.log(obj.name, e.properties.find(prop => prop.name === "init_state").value);
+                                obj.setState(e.properties.find(prop => prop.name === "init_state").value);
+                            }
                         } catch (ex) {
                             console.log("Error while creating: " + e.gid + "] " + e.type +
                                 ", " + ex);
@@ -202,18 +205,12 @@ export let mapManager = {
         this.bLayer = null;
         this.xCount = 0;
         this.yCount = 0;
-        this.tSize = {x: 64, y: 64};
-        this.mapSize = {x: 64, y: 64};
+        this.tSize = {x: 16, y: 16};
+        this.mapSize = {x: 16, y: 16};
         this.tilesets = [];
         this.imgLoadCount = 0;
         this.imgLoaded = false;
         this.jsonLoaded = false;
-        this.view = {x: 0, y: 0, w: 800, h: 576};
+        this.view = {x: 0, y: 0, w: 120, h: 90};
     }
 }
-
-// mapManager.loadMap('./cw.json');
-// const canvas = document.getElementById("canvas");
-// const ctx = canvas.getContext("2d");
-// mapManager.draw(ctx);
-// // mapManager.parseEntities();

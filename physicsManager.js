@@ -9,18 +9,13 @@ export let physicsManager = {
         if (obj.move_x === 0 && obj.move_y === 0)
             return "stop";
 
-        // let abs = Math.sqrt(obj.move_x * obj.move_x + obj.move_y * obj.move_y);
-        // let normalMoveX = obj.move_x / abs;
-        // let normalMoveY = obj.move_y / abs;
-        // let newX = obj.pos_x + normalMoveX * obj.speed;
-        // let newY = obj.pos_y + normalMoveY * obj.speed;
         let newX = obj.pos_x + Math.floor(obj.move_x * obj.speed);
         let newY = obj.pos_y + Math.floor(obj.move_y * obj.speed);
         let oldCollider = obj.getCollider();
         let newCollider = {
             x: oldCollider.x + (newX - obj.pos_x),
             y: oldCollider.y + (newY - obj.pos_y),
-            x_e:  oldCollider.x_e + (newX - obj.pos_x),
+            x_e: oldCollider.x_e + (newX - obj.pos_x),
             y_e: oldCollider.y_e + (newY - obj.pos_y)
         };
 
@@ -34,24 +29,22 @@ export let physicsManager = {
         if (newCollider.x < 0 || newCollider.y < 0 ||
             newCollider.x_e > mapManager.mapSize.x ||
             newCollider.y_e + obj.size_y > mapManager.mapSize.y) {
+            obj.on_collision();
             return "break";
         }
         if ((ts !== 0)) {
+            obj.on_collision();
             return "break";
         }
-        if (ts !== 2 && ts !== 7 && ts !== 31 && (e === null || e.name.match(/finish_[\d]/))) {
-            obj.pos_x = newX;
-            obj.pos_y = newY;
 
-            gameManager.players_steps++;
-        } else {
-            return "break";
-        }
+        obj.pos_x = newX;
+        obj.pos_y = newY;
+
         // audioManager.playEvent(audioManager.stepsSoung);
         return "move";
     },
 
-    entityAtXY: function (obj, x, y) {
+    entityAtXY(obj, x, y) {
         for (let i = 0; i < gameManager.entities.length; i++) {
             let e = gameManager.entities[i];
             if (e.name !== obj.name) {

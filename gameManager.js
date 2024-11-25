@@ -1,7 +1,8 @@
 import {eventsManager} from "./eventsManager.js";
 import {spriteManager} from "./spriteManager.js";
 import {mapManager} from "./mapManager.js";
-import {Player, Hound, Finish} from "./objectProcessing.js";
+import {soundManager} from "./soundManager.js";
+import {Player, Hound, Bonus, Exit, Devil, Fireball} from "./objectProcessing.js";
 
 let canvas = document.getElementById("canvas");
 export let ctx = canvas.getContext("2d");
@@ -10,122 +11,146 @@ export let ctx = canvas.getContext("2d");
 export let gameManager = {
     factory: {},
     entities: [],
+    toKill: [],
+    effects: [],
     player: null,
-    levels_path: ["resources/maps/cw.json"],
+    levels: ["resources/maps/cw.json", "resources/maps/cw2.json"],
     level: 0,
     count_target: 0,
-    players_steps: 0,
+    score: 0,
     smelly_points: {},
 
     initPlayer(obj) {
+        if (this.player) {
+            obj.health = this.player.health;
+            obj.mana = this.player.mana;
+        }
         this.player = obj;
     },
 
     update() {
+        this.effects = this.effects.filter(effect => effect.span > 0);
+        for (let e of this.toKill) {
+            this.entities = this.entities.filter(ent => ent.name !== e.name);
+
+        }
+        this.toKill = [];
         if (this.player === null)
             return;
         this.player.move_x = 0;
         this.player.move_y = 0;
         this.smelly_points[[this.player.pos_x, this.player.pos_y]] = 150;
-        console.log("sadfa");
         if (eventsManager.action["up"]) this.player.move_y = -1;
         if (eventsManager.action["down"]) this.player.move_y = 1;
         if (eventsManager.action["left"]) this.player.move_x = -1;
         if (eventsManager.action["right"]) this.player.move_x = 1;
+        if (eventsManager.action["fight"]) this.player.attack();
         if (eventsManager.action["esc"]) this.end_game();
         if (eventsManager.action["reset"]) this.reset_level();
 
 
-
-        this.entities.forEach(e => {
-            try {
-                e.update()
-            } catch (ex) {
-                console.log(e.name + " " + ex);
-            }
-        });
-
         mapManager.draw(ctx);
         mapManager.centerAt(this.player.pos_x, this.player.pos_y);
-        this.draw(ctx);
-        if (this.check_game_status()) {
-            if (this.level + 1 === this.levels_path.length) {
-                this.end_game()
-            } else
-                this.go_next_level()
-        }
+        this.entities.forEach(e => {
+            e.update();
+        });
+
         for (let i in this.smelly_points) {
-            let [a, b] = i.split(',').map(Number)
-            ctx.strokeStyle = "rgba(150, 75, 0, " + 1/150 *this.smelly_points[i] + ")";
-            ctx.strokeRect(a - mapManager.view.x ,b - mapManager.view.y,4,4);
+            let [a, b] = i.split(',').map(Number);
+            ctx.strokeStyle = "rgba(150, 75, 0, " + 1 / 150 * this.smelly_points[i] + ")";
+            ctx.strokeRect(a - mapManager.view.x, b - mapManager.view.y, 4, 4);
             if (!--this.smelly_points[i]) {
                 delete this.smelly_points[i];
             }
         }
-        let collider = this.player.getCollider();
         ctx.strokeStyle = "blue";
-        ctx.strokeRect(collider.x - mapManager.view.x, collider.y - mapManager.view.y, 16, 16);
+        this.draw(ctx);
+        for (let i of this.entities) {
+            let collider = i.getCollider();
+            ctx.strokeRect(collider.x - mapManager.view.x, collider.y - mapManager.view.y, collider.x_e - collider.x,
+                collider.y_e - collider.y);
+        }
     },
 
     draw(ctx) {
+        for (let e in this.effects) {
+            if (this.effects[e].span--) {
+                ctx.fillStyle = this.effects[e].color;
+                ctx.beginPath();
+                ctx.arc(...this.effects[e].params);
+                ctx.fill();
+            }
+        }
         for (let e = 0; e < this.entities.length; e++)
-            this.entities[e].draw(ctx)
+            if (this.entities[e] != this.player)
+                this.entities[e].draw(ctx);
+        this.player.draw(ctx);
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = '6px "Press Start 2P"';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'left';
+        ctx.fillText( this.score.toString(), 10, 10);
     },
 
     loadAll() {
-        mapManager.loadMap(this.levels_path[this.level]);
+        mapManager.loadMap(this.levels[this.level]);
         spriteManager.loadAtlas("resources/sprites.json", "resources/sprites.png");
         gameManager.factory['Player'] = Player;
-        // gameManager.factory['Finish'] = Finish;
-        // gameManager.factory['Box'] = Box;
+        gameManager.factory['Hound'] = Hound;
+        gameManager.factory['Bonus'] = Bonus;
+        gameManager.factory['Exit'] = Exit;
+        gameManager.factory['Devil'] = Devil;
+        gameManager.factory['Fireball'] = Fireball;
         mapManager.parseEntities();
         mapManager.draw(ctx);
         eventsManager.setup(canvas);
-        // audioManager.init()
-        // audioManager.playLevel()
-
-
+        soundManager.init()
+        soundManager.loadArray(["resources/music/explosion.ogg",
+            "/resources/music/evil_laugh_02.ogg",
+            "/resources/music/big boss 2.ogg",
+            "/resources/music/TownTheme.ogg",
+            "/resources/music/foom_0.ogg",
+            "/resources/music/wolf_monster.ogg"]);
     },
-    go_next_level: function () {
 
+    nextLevel() {
         clearInterval(this.interval);
-        this.level++;
+        if (this.level === 1) {
+            this.end_game();
+        }
+        if (++this.level > this.levels.length) {
+            this.end_game();
+        }
         this.count_target = 0;
         this.entities = [];
-        mapManager.reset()
-
-        mapManager.loadMap(this.levels_path[this.level]);
+        mapManager.reset();
+        console.log(gameManager);
+        mapManager.loadMap(this.levels[this.level]);
         mapManager.parseEntities();
         ctx.clearRect(0, 0, mapManager.view.w, mapManager.view.h);
         mapManager.draw(ctx);
-        gameManager.play();
+        gameManager.start();
 
     },
-    reset_level() {
-        this.level--;
-        this.go_next_level();
-    },
-    play() {
+
+    start() {
+        if (this.level === 0){
+            soundManager.play("/resources/music/TownTheme.ogg", {volume: 0.5, looping: true});
+        }
+        else if (this.level === 1) {
+            soundManager.play("/resources/music/big boss 2.ogg", {volume: 0.2, looping: true})
+        }
         this.interval = setInterval(updateWorld, 10);
-    },
-    check_game_status() {
-        let t = 0;
-        this.entities.forEach(function (e) {
-            if (e.name.match(/box_[\d]/) && e.status) t++;
-        });
 
-        if (t === this.count_target && this.count_target > 0) return true;
-        return false;
     },
+
     end_game() {
+        soundManager.stop();
+        let name = localStorage.getItem("player_name") || "Unknown Player";
+        updateRecords(name, gameManager.score);
         clearInterval(this.interval);
         mapManager.reset();
         gameManager.entities = []
-        ctx.clearRect(0, 0, mapManager.view.w, mapManager.view.h);
-        let text = "Вы прошли " + (this.level + 1) + " уровня за " + this.players_steps + " шагов";
-        ctx.font = "22px Verdana";
-        ctx.fillText(text, mapManager.view.w / 4, mapManager.view.h / 2)
-        update_records();
     }
 
 };
@@ -134,43 +159,75 @@ function updateWorld() {
     gameManager.update()
 }
 
-function update_records() {
-    let arr;
-    if (localStorage.hasOwnProperty('higthscores')) {
-        arr = JSON.parse(localStorage.getItem('higthscores'));
-        arr.push({name: name, score: gameManager.players_steps});
-        arr.sort(function (a, b) {
-            return a.score - b.score;
-        });
+const font = new FontFace('"Press Start 2P"', 'url("resources/PressStart2P-Regular.ttf")');
+font.load().then(() => {
+    document.fonts.add(font);
 
-        while (arr.length > 10) {
-            arr.pop();
-        }
-        localStorage.setItem('higthscores', JSON.stringify(arr));
-    } else {
-        arr = [];
-        arr.push({name: name, score: gameManager.players_steps});
-        localStorage.setItem('higthscores', JSON.stringify(arr));
+}).catch(err => console.log(err));
+
+document.getElementById("play").addEventListener("click", () => {
+    localStorage.setItem("player_name", document.getElementById("player").value);
+    mapManager.reset();
+    soundManager.stop();
+    gameManager.level = 0;
+    gameManager.score = 0;
+    gameManager.loadAll();
+    gameManager.entities = [];
+    gameManager.start();
+});
+
+document.getElementById("lvl1").addEventListener("click", () => {
+    localStorage.setItem("player_name", document.getElementById("player").value);
+    mapManager.reset();
+    soundManager.stop();
+    gameManager.level = 0;
+    gameManager.score = 0;
+    gameManager.loadAll();
+    gameManager.entities = [];
+    gameManager.start();
+});
+
+document.getElementById("lvl2").addEventListener("click", () => {
+    localStorage.setItem("player_name", document.getElementById("player").value);
+    mapManager.reset();
+    soundManager.stop();
+    gameManager.entities = [];
+    gameManager.level = 1;
+    gameManager.score = 0;
+    gameManager.loadAll();
+    gameManager.start();
+});
+
+
+function updateRecords(name, score) {
+    let records = JSON.parse(localStorage.getItem("records")) || {};
+    if (!records[name] || score > records[name]) {
+        records[name] = score; // Update only if the new score is higher
+        localStorage.setItem("records", JSON.stringify(records));
     }
-    write_record();
+    displayRecords(records);
 }
 
-function write_record() {
-    let arr = JSON.parse(localStorage.getItem('higthscores'));
-    let table = '<table class="simple-little-table">';
-    for (let i = 0; i < arr.length; i++) {
-        table += '<tr>';
-        table += '<td>' + (Number(i) + 1) + '</td>';
-        table += '<td>' + arr[i].name + '</td>';
-        table += '<td>' + arr[i].score + '</td>';
-        table += '</tr>';
-    }
-    table += '</table>';
-    document.getElementById('table').innerHTML = table;
+function displayRecords(records) {
+    const recordTableBody = document.querySelector(".result-table tbody");
+    recordTableBody.innerHTML = "";
+
+    const sortedRecords = Object.entries(records)
+        .sort(([, scoreA], [, scoreB]) => scoreB - scoreA) // Sort by score (descending)
+        .slice(0, 10);
+
+    sortedRecords.forEach(([player, maxScore], index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>#${index + 1}</td>
+            <td>${player}</td>
+            <td>${maxScore} pts</td>
+        `;
+        recordTableBody.appendChild(row);
+    });
 }
 
-
-let name = localStorage.getItem("gamer_name");
-gameManager.loadAll();
-//write_record();
-gameManager.play();
+document.addEventListener("DOMContentLoaded", () => {
+    const records = JSON.parse(localStorage.getItem("records")) || {};
+    displayRecords(records);
+});
